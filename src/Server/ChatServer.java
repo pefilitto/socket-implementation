@@ -147,7 +147,7 @@ public class ChatServer {
         }
     }
 
-    public void enviarMensagemPrivada(String remetente, String destinatario, String conteudo) {
+    public boolean enviarMensagemPrivada(String remetente, String destinatario, String conteudo) {
         ClientHandler clienteDestinatario = clientesConectados.get(destinatario);
         ClientHandler clienteRemetente = clientesConectados.get(remetente);
 
@@ -178,6 +178,8 @@ public class ChatServer {
                 }
             }
         }
+
+        return true;
     }
 
     public void enviarMensagemGrupo(String remetente, String nomeGrupo, String conteudo, List<String> destinatariosEspecificos) {

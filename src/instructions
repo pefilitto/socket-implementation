@@ -1,0 +1,18 @@
+0 - Ver se esta usando a mesma versao do Java e do Javac
+
+1 - Abrir o git bash (ou algum terminal que aceite comandos linux)
+
+2 - Navegar ate a src
+
+3 - Executar o comando: find . -name "*.java" > sources.txt (somente na primeira vez)
+
+4 - Executar o comando: javac @sources.txt
+
+5 - Abrir um terminal pro Servidor e executar: java Server.ChatServer
+
+6 - Abrir um terminal pro Cliente e executar: java Client.ChatClient
+
+//Para registrar: register Pedro Filitto pefilitto pedrofilitto111@gmail.com 123456
+//Para registrar: register Vitor Eyki vitoreyki vitor@gmail.com 123456
+
+

@@ -176,6 +176,26 @@ public class Database {
         return solicitantes;
     }
 
+    public void estabelecerAmizade(String usuario1, String usuario2) {
+        User user1 = usuarios.get(usuario1);
+        User user2 = usuarios.get(usuario2);
+
+        if (user1 != null && user2 != null) {
+            user1.adicionarAmigo(user2);
+            user2.adicionarAmigo(user1);
+        }
+    }
+
+    public boolean temAmizadeEstabelecida(String usuario1, String usuario2) {
+        User user1 = usuarios.get(usuario1);
+        User user2 = usuarios.get(usuario2);
+
+        if (user1 != null && user2 != null && user1.getAmigos() != null && user2.getAmigos() != null) {
+            return user1.getAmigos().contains(user2) && user2.getAmigos().contains(user1);
+        }
+        return false;
+    }
+
     // Método para limpar dados (útil para testes)
     public void limparDados() {
         usuarios.clear();

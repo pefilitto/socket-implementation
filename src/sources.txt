@@ -1,0 +1,10 @@
+./Client/ChatClient.java
+./Database/Database.java
+./Main.java
+./Model/Group.java
+./Model/Message.java
+./Model/User.java
+./Server/ChatServer.java
+./Server/ClientHandler.java
+./Server/CommandProcessor.java
+./Util/UserRegistration.java

@@ -1,7 +1,9 @@
 package Model;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class User {
@@ -13,6 +15,7 @@ public class User {
     private boolean online;
     private LocalDateTime ultimoAcesso;
     private Set<String> gruposParticipando;
+    private List<User> amigos = null; // Lista de amigos do usuário
 
     public enum StatusUsuario {
         ONLINE, OFFLINE, OCUPADO, AUSENTE
@@ -27,6 +30,7 @@ public class User {
         this.online = false;
         this.ultimoAcesso = LocalDateTime.now();
         this.gruposParticipando = new HashSet<>();
+        this.amigos = new ArrayList<>();
     }
 
     // Getters e Setters
@@ -102,6 +106,14 @@ public class User {
 
     public void removerGrupo(String nomeGrupo) {
         this.gruposParticipando.remove(nomeGrupo);
+    }
+
+    public void adicionarAmigo(User amigo){
+        amigos.add(amigo);
+    }
+
+    public List<User> getAmigos() {
+        return amigos;
     }
 
     @Override

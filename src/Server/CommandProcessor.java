@@ -429,12 +429,25 @@ public class CommandProcessor {
             return;
         }
 
-        // Verifica se há solicitação pendente
-        if (!database.temSolicitacaoAmizade(clientHandler.getLoginUsuario(), destinatario)) {
-            // Cria solicitação
+        // Verifica se o destinatário existe
+        User usuarioDestinatario = database.getUsuario(destinatario);
+        if (usuarioDestinatario == null) {
+            clientHandler.enviarMensagem("Usuário '" + destinatario + "' não encontrado!");
+            return;
+        }
+
+        // Verifica se já existe amizade/conexão estabelecida ou solicitação aceita
+        if (!database.temAmizadeEstabelecida(clientHandler.getLoginUsuario(), destinatario)) {
+            // Verifica se já há solicitação pendente
+            if (database.temSolicitacaoAmizade(clientHandler.getLoginUsuario(), destinatario)) {
+                clientHandler.enviarMensagem("Você já enviou uma solicitação para " + destinatario + ". Aguarde a resposta.");
+                return;
+            }
+
+            // Cria nova solicitação
             database.adicionarSolicitacaoAmizade(clientHandler.getLoginUsuario(), destinatario);
 
-            // Notifica o destinatário
+            // Notifica o destinatário se estiver online
             ClientHandler clienteDestinatario = servidor.getClientHandler(destinatario);
             if (clienteDestinatario != null) {
                 User remetente = database.getUsuario(clientHandler.getLoginUsuario());
@@ -443,14 +456,31 @@ public class CommandProcessor {
                         String.format("[SOLICITAÇÃO] %s quer conversar com você. Digite 'accept %s' ou 'reject %s'",
                                 nomeRemetente, clientHandler.getLoginUsuario(), clientHandler.getLoginUsuario())
                 );
+            } else {
+                // Usuário offline - salva notificação
+                Message notificacao = new Message("SISTEMA", Arrays.asList(destinatario),
+                        String.format("Solicitação de conversa de %s. Digite 'accept %s' quando estiver online.",
+                                clientHandler.getLoginUsuario(), clientHandler.getLoginUsuario()),
+                        Message.TipoMensagem.SISTEMA);
+                database.adicionarMensagemPendente(destinatario, notificacao);
             }
 
-            clientHandler.enviarMensagem("Solicitação de conversa enviada para " + destinatario);
+            clientHandler.enviarMensagem("Solicitação de conversa enviada para " + destinatario + ". Aguarde a resposta.");
+
             return;
         }
+        else{
+            processarAceitarSolicitacao(clientHandler.getLoginUsuario());
+        }
 
-        // Envia a mensagem
-        servidor.enviarMensagemPrivada(clientHandler.getLoginUsuario(), destinatario, conteudo);
+        // Se chegou aqui, a amizade está estabelecida - envia a mensagem
+        boolean enviada = servidor.enviarMensagemPrivada(clientHandler.getLoginUsuario(), destinatario, conteudo);
+
+        if (enviada) {
+            clientHandler.enviarMensagem("✓ Mensagem enviada para " + destinatario);
+        } else {
+            clientHandler.enviarMensagem("✗ Não foi possível enviar a mensagem para " + destinatario + " (usuário offline)");
+        }
     }
 
     private void processarAceitarSolicitacao(String solicitante) {
@@ -459,23 +489,32 @@ public class CommandProcessor {
             return;
         }
 
-        if (database.temSolicitacaoAmizade(solicitante, clientHandler.getLoginUsuario())) {
-            database.removerSolicitacaoAmizade(solicitante, clientHandler.getLoginUsuario());
-
-            // Notifica o solicitante
-            ClientHandler clienteSolicitante = servidor.getClientHandler(solicitante);
-            if (clienteSolicitante != null) {
-                User destinatario = database.getUsuario(clientHandler.getLoginUsuario());
-                String nomeDestinatario = destinatario != null ? destinatario.getNomeCompleto() : clientHandler.getLoginUsuario();
-                clienteSolicitante.enviarMensagem(
-                        String.format("✓ %s aceitou sua solicitação de conversa!", nomeDestinatario)
-                );
-            }
-
-            clientHandler.enviarMensagem("Solicitação aceita! Agora vocês podem conversar.");
-        } else {
+        if (!database.temSolicitacaoAmizade(solicitante, clientHandler.getLoginUsuario())) {
             clientHandler.enviarMensagem("Não há solicitação pendente de " + solicitante);
+            return;
         }
+
+        // Remove a solicitação e estabelece a amizade
+        database.removerSolicitacaoAmizade(solicitante, clientHandler.getLoginUsuario());
+        database.estabelecerAmizade(solicitante, clientHandler.getLoginUsuario());
+
+        // Notifica o solicitante
+        ClientHandler clienteSolicitante = servidor.getClientHandler(solicitante);
+        if (clienteSolicitante != null) {
+            User destinatario = database.getUsuario(clientHandler.getLoginUsuario());
+            String nomeDestinatario = destinatario != null ? destinatario.getNomeCompleto() : clientHandler.getLoginUsuario();
+            clienteSolicitante.enviarMensagem(
+                    String.format("✓ %s aceitou sua solicitação de conversa! Agora vocês podem trocar mensagens.", nomeDestinatario)
+            );
+        } else {
+            // Solicitante offline - salva notificação
+            Message notificacao = new Message("SISTEMA", Arrays.asList(solicitante),
+                    String.format("%s aceitou sua solicitação de conversa!", clientHandler.getLoginUsuario()),
+                    Message.TipoMensagem.SISTEMA);
+            database.adicionarMensagemPendente(solicitante, notificacao);
+        }
+
+        clientHandler.enviarMensagem("✓ Solicitação aceita! Agora vocês podem conversar livremente.");
     }
 
     private void processarRejeitarSolicitacao(String solicitante) {

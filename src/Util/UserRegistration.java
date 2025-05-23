@@ -4,6 +4,7 @@ import Database.Database;
 import Model.User;
 import Server.ClientHandler;
 
+import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 public class UserRegistration {
