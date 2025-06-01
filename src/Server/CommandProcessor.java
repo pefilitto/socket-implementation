@@ -281,7 +281,18 @@ public class CommandProcessor {
         }
 
         grupo.adicionarVoto(usuario, clientHandler.getLoginUsuario(), true);
-        clientHandler.enviarMensagem("Você votou a favor da entrada de " + usuario + " no grupo '" + nomeGrupo + "'");
+        clientHandler.enviarMensagem("✅ Você votou a favor da entrada de " + usuario +
+                                     " no grupo '" + nomeGrupo + "'");
+
+        if (grupo.aprovadoPorTodos(usuario)) {
+            grupo.removerSolicitacaoPendente(usuario);
+            grupo.adicionarMembro(usuario);
+
+            User novoMembro = database.getUsuario(usuario);
+            if (novoMembro != null) novoMembro.adicionarGrupo(nomeGrupo);
+
+            notificarGrupoEntrada(nomeGrupo, usuario);
+        }
     }
 
     public void votarNao(String nomeGrupo, String usuario) {
@@ -302,25 +313,29 @@ public class CommandProcessor {
         }
 
         grupo.adicionarVoto(usuario, clientHandler.getLoginUsuario(), false);
-        clientHandler.enviarMensagem("Você votou contra a entrada de " + usuario + " no grupo '" + nomeGrupo + "'");
+        clientHandler.enviarMensagem("❌ Você votou contra a entrada de " + usuario +
+                                     " no grupo '" + nomeGrupo + "'");
+
+        grupo.removerSolicitacaoPendente(usuario);
+        notificarGrupoRejeicao(nomeGrupo, usuario);
     }
 
-    private void processarCadastro() {
-        if (clientHandler.getLoginUsuario() != null) {
-            clientHandler.enviarMensagem("Você já está logado!");
-            return;
-        }
+    // private void processarCadastro() {
+    //     if (clientHandler.getLoginUsuario() != null) {
+    //         clientHandler.enviarMensagem("Você já está logado!");
+    //         return;
+    //     }
 
-        Scanner scanner = new Scanner(System.in);
+    //     Scanner scanner = new Scanner(System.in);
 
-        clientHandler.enviarMensagem("=== CADASTRO DE USUÁRIO ===");
-        clientHandler.enviarMensagem("Digite seu nome completo:");
-        // Nota: Em uma implementação real, você precisaria de um mecanismo para entrada interativa
-        // Por simplicidade, vou mostrar como seria o fluxo
+    //     clientHandler.enviarMensagem("=== CADASTRO DE USUÁRIO ===");
+    //     clientHandler.enviarMensagem("Digite seu nome completo:");
+    //     // Nota: Em uma implementação real, você precisaria de um mecanismo para entrada interativa
+    //     // Por simplicidade, vou mostrar como seria o fluxo
 
-        clientHandler.enviarMensagem("Para completar o cadastro, use: register <nome> <login> <email> <senha>");
-        clientHandler.enviarMensagem("Exemplo: register João Silva joao joao@email.com 123456");
-    }
+    //     clientHandler.enviarMensagem("Para completar o cadastro, use: register <nome> <login> <email> <senha>");
+    //     clientHandler.enviarMensagem("Exemplo: register João Silva joao joao@email.com 123456");
+    // }
 
     private void processarLogin(String login, String senha) {
         if (clientHandler.getLoginUsuario() != null) {
@@ -800,6 +815,39 @@ public class CommandProcessor {
         if (temConvites) {
             clientHandler.enviarMensagem("Use 'accept_group <grupo>' ou 'reject_group <grupo>'");
             clientHandler.enviarMensagem("============================\n");
+        }
+    }
+
+    private void notificarGrupoEntrada(String nomeGrupo, String novoMembro) {
+        Group grupo = database.getGrupo(nomeGrupo);
+        for (String membro : grupo.getMembros()) {
+            ClientHandler ch = servidor.getClientHandler(membro);
+            if (ch == null) continue;
+
+            if (membro.equals(novoMembro)) {
+                ch.enviarMensagem("🎉 Sua solicitação foi aprovada! Agora você faz parte do grupo '" +
+                                  nomeGrupo + "'.");
+            } else {
+                ch.enviarMensagem("👥 " + novoMembro + " entrou no grupo '" + nomeGrupo + "'");
+            }
+        }
+    }
+
+    private void notificarGrupoRejeicao(String nomeGrupo, String solicitante) {
+        Group grupo = database.getGrupo(nomeGrupo);
+
+        ClientHandler solicitanteCH = servidor.getClientHandler(solicitante);
+        if (solicitanteCH != null) {
+            solicitanteCH.enviarMensagem("🙁 Sua solicitação para entrar no grupo '" +
+                                         nomeGrupo + "' foi rejeitada.");
+        }
+
+        for (String membro : grupo.getMembros()) {
+            ClientHandler ch = servidor.getClientHandler(membro);
+            if (ch != null) {
+                ch.enviarMensagem("🚫 A solicitação de " + solicitante +
+                                  " para entrar no grupo '" + nomeGrupo + "' foi rejeitada.");
+            }
         }
     }
 }
